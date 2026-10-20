@@ -16,7 +16,7 @@ Two libraries:
 `infopanel-demo` is a small executable for trying the view by hand.
 
 `PanelPlacement.swift` is Loupe's `LoupeCore/PanelPlacement.swift` (master), with `PanelCorner.isLeft` and `isTop`
-made public. Loupe is not migrated to this package yet.
+made public.
 
 ## Tests
 
