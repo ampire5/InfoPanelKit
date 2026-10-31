@@ -1,5 +1,7 @@
 # InfoPanelKit
 
+Developer guide: [architecture and code map](docs/architecture.md).
+
 The info panel shared by FrameScrub and Loupe: titled sections of label/value rows on glass, which the user can
 drag, resize, reorder and collapse.
 
