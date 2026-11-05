@@ -15,5 +15,5 @@ let package = Package(
         .testTarget(name: "InfoPanelModelTests", dependencies: ["InfoPanelModel"]),
         .testTarget(name: "InfoPanelKitTests", dependencies: ["InfoPanelKit"]),
     ],
-    swiftLanguageModes: [.v5]
+    swiftLanguageModes: [.v6]
 )

@@ -20,7 +20,9 @@ the view owns row/section presentation and user interaction. The host owns data 
 Host reads facts → builds InfoSection values → `show` → layout/view. Visibility is a combination of user intent,
 host availability and optional empty-content hiding. The host calls `place` when its usable area changes.
 `UserDefaults` keys are namespaced by the supplied prefix; controllers sharing defaults/prefix follow preference
-changes through `stateDidChange`. Section order/collapse and position are presentation preferences, not media state.
+changes through `stateDidChange`. Notifications are posted and followed synchronously on the main actor;
+the sender is passed as an `InfoPanelController`, preserving that ownership across the callback. Section
+order/collapse and position are presentation preferences, not media state.
 
 UI work belongs to the main actor. `onShownChange` lets the host start/stop updates; hiding a panel must not leave a
 host diagnostics timer running. Wheel/key/other-mouse hooks and the shared field editor preserve host input routing.

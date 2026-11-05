@@ -71,7 +71,7 @@ import AppKit
         follower = NotificationCenter.default.addObserver(forName: Self.stateDidChange, object: defaults,
                                                           queue: nil) { [weak self] note in
             let prefix = note.userInfo?["prefix"] as? String
-            let sender = note.userInfo?["sender"] as? AnyObject
+            let sender = note.userInfo?["sender"] as? InfoPanelController
             MainActor.assumeIsolated {
                 guard let self, prefix == self.prefix, sender !== self else { return }
                 self.follow()

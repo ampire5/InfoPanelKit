@@ -5,7 +5,7 @@ Developer guide: [architecture and code map](docs/architecture.md).
 The info panel shared by FrameScrub and Loupe: titled sections of label/value rows on glass, which the user can
 drag, resize, reorder and collapse.
 
-Requirements: macOS 26+, swift-tools 6.2 (the targets build in the Swift 5 language mode).
+Requirements: macOS 26+, swift-tools 6.2 (the targets build in the Swift 6 language mode).
 
 ![The info panel over a photo in Loupe](https://raw.githubusercontent.com/ampire5/Loupe/main/docs/images/info.webp)
 
