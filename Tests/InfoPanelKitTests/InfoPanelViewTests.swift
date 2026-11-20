@@ -28,37 +28,52 @@ extension PanelTests {
             (view.outline.view(atColumn: 1, row: row, makeIfNecessary: true) as? NSTableCellView)?.textField
         }
 
-        /// Style B: white values, quieter labels set against them, headers in small spaced capitals.
-        @Test func styleB() throws {
+        /// Text stays legible over glass and headings keep their authored case.
+        @Test func readableHierarchy() throws {
             let view = panel()
             view.show(sections(), collapsed: [])
             let value = try #require(valueField(view, row: 1))
             #expect(value.textColor == NSColor(white: 1, alpha: InfoPanelStyle.valueAlpha))
             let label = try #require((view.outline.view(atColumn: 0, row: 1, makeIfNecessary: true) as? NSTableCellView)?.textField)
-            #expect(label.textColor == NSColor(white: 1, alpha: 0.55))
+            #expect(label.textColor == NSColor(white: 1, alpha: 0.74))
             #expect(label.alignment == .right)
             let header = try #require(view.outline.view(atColumn: 0, row: 0, makeIfNecessary: true) as? SectionHeaderView)
-            #expect(header.title.stringValue == "FILE")
-            #expect(header.title.font?.pointSize == view.fontSize - 2)
+            #expect(header.title.stringValue == "File")
+            #expect(header.title.font?.pointSize == view.fontSize - 1)
             let kern = header.title.attributedStringValue.attribute(.kern, at: 0, effectiveRange: nil) as? CGFloat
-            #expect(kern == 0.08 * (view.fontSize - 2))
-            #expect(header.title.textColor == NSColor(white: 1, alpha: 0.5))
-            #expect(InfoPanelStyle.tint == 0.46 && InfoPanelStyle.sectionGap == 11)
+            #expect(kern == nil)
+            #expect(header.title.textColor == NSColor(white: 1, alpha: 0.78))
+            let glass = try #require(view.subviews.compactMap { $0 as? NSVisualEffectView }.first)
+            #expect(glass.material == .hudWindow && glass.blendingMode == .withinWindow)
+            #expect(glass.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua)
         }
 
-        @Test func chevronShowsOnHoverAndWhenCollapsed() throws {
+        @Test func longLabelsLeaveSpaceForValuesInANarrowPanel() throws {
+            let view = panel()
+            view.contentWidth = 190
+            let name = "An unexpectedly long metadata field name"
+            view.show([InfoSection(title: "File", rows: [InfoRow(label: name, value: "1920 × 1080")])], collapsed: [])
+            let label = try #require((view.outline.view(atColumn: 0, row: 1, makeIfNecessary: true) as? NSTableCellView)?.textField)
+            #expect(view.labelColumn.width <= 72)
+            #expect(label.toolTip == name)
+            #expect(valueField(view, row: 1)?.preferredMaxLayoutWidth ?? 0 >= 90)
+        }
+
+        @Test func chevronRemainsAvailableInEverySectionState() throws {
             let view = panel()
             view.show(sections(), collapsed: ["Video"])
             let file = try #require(view.outline.view(atColumn: 0, row: 0, makeIfNecessary: true) as? SectionHeaderView)
-            #expect(!file.chevronVisible && file.button.isHidden)
+            #expect(!file.button.isHidden)
             file.isHovered = true
-            #expect(file.chevronVisible && !file.button.isHidden)
-            #expect(file.title.textColor == NSColor(white: 1, alpha: 0.8))
+            #expect(!file.button.isHidden)
+            #expect(file.title.textColor == NSColor(white: 1, alpha: 0.95))
             #expect(file.button.title == "⌄")
+            #expect(file.button.accessibilityLabel() == "Collapse File")
             file.isHovered = false
             let video = try #require(view.outline.view(atColumn: 0, row: 3, makeIfNecessary: true) as? SectionHeaderView)
-            #expect(video.chevronVisible && !video.button.isHidden)
+            #expect(!video.button.isHidden)
             #expect(video.button.title == "›")
+            #expect(video.button.accessibilityLabel() == "Expand Video")
         }
 
         @Test func showsHeadersAndRows() {
@@ -95,7 +110,7 @@ extension PanelTests {
             view.show(more, collapsed: [])
             #expect(view.outline.numberOfRows == 8)
             let header = view.outline.view(atColumn: 0, row: 6, makeIfNecessary: true) as? SectionHeaderView
-            #expect(header?.title.stringValue == "AUDIO")
+            #expect(header?.title.stringValue == "Audio")
         }
 
         @Test func contentHeightGrowsWithAWrappingValue() {
@@ -240,8 +255,8 @@ extension PanelTests {
             // A header's row drags its section, its triangle collapses it.
             #expect(view.hitTest(centre(header.title)) === outline)
             #expect(view.hitTest(at(NSPoint(x: 300, y: outline.rect(ofRow: 0).midY), in: outline)) === outline)
-            // The chevron, hidden until the pointer is over the header: the row's (drag) till then.
-            #expect(view.hitTest(centre(header.button)) === outline)
+            // The persistent chevron remains distinct from the draggable header.
+            #expect(view.hitTest(centre(header.button)) === header.button)
             header.isHovered = true
             #expect(view.hitTest(centre(header.button)) === header.button)
             header.isHovered = false
