@@ -1,11 +1,7 @@
 import AppKit
 
-/// A section's header row in the info panel: the title in small spaced capitals, a hairline to the row's end and, at
-/// the end, the chevron that collapses the section — shown while the pointer is over the header and always while the
-/// section is collapsed. The outline gives it the label column's cell (the value column's is empty), and the title,
-/// rule and chevron reach past it to the row's end. The outline's own triangle is hidden, so the chevron is the one
-/// place a section collapses; the press reaches it rather than the outline (`InfoPanelView.hitTest`), and anywhere else
-/// on the row the outline takes the press, to drag the section to another place.
+/// A section title, rule and persistent disclosure button. The title and rule remain draggable;
+/// the button toggles the section independently.
 @MainActor final class SectionHeaderView: NSView {
     /// The chevron: `⌄` while the section is expanded, `›` while it is collapsed.
     let button = NSButton(title: "", target: nil, action: nil)
@@ -13,13 +9,10 @@ import AppKit
     /// The chevron was pressed: true when the section is now expanded.
     var onToggle: ((Bool) -> Void)?
 
-    /// The pointer is over the header's row: the title brightens and the chevron shows.
+    /// The pointer is over the header's row: brighten the title and chevron.
     var isHovered = false {
         didSet { if isHovered != oldValue { updateLook() } }
     }
-
-    /// The chevron is on screen.
-    var chevronVisible: Bool { isHovered || !isExpanded }
 
     private let rule = NSView()
     private let text: String
@@ -107,14 +100,13 @@ import AppKit
     private func updateLook() {
         let alpha = isHovered ? InfoPanelStyle.headerHoverAlpha : InfoPanelStyle.headerAlpha
         let colour = NSColor(white: 1, alpha: alpha)
-        title.attributedStringValue = NSAttributedString(string: text.uppercased(), attributes: [
-            .font: font, .foregroundColor: colour, .kern: InfoPanelStyle.headerKern * font.pointSize,
-        ])
+        if title.stringValue != text { title.stringValue = text }
         title.textColor = colour
         button.attributedTitle = NSAttributedString(string: isExpanded ? "⌄" : "›", attributes: [
-            .font: button.font ?? font, .foregroundColor: NSColor(white: 1, alpha: InfoPanelStyle.headerHoverAlpha),
+            .font: button.font ?? font, .foregroundColor: colour,
         ])
-        button.isHidden = !chevronVisible
+        let action = isExpanded ? "Collapse" : "Expand"
+        button.setAccessibilityLabel("\(action) \(text)")
     }
 
     @objc private func toggled() {

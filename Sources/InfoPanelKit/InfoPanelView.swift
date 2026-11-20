@@ -1,17 +1,14 @@
 import AppKit
 
-/// The panel's look (style B): darker glass, white values, quieter labels set against them, quiet headers in small
-/// spaced capitals with a hairline.
+/// Dark glass, high-contrast text and a hairline between groups.
 enum InfoPanelStyle {
-    static let tint: CGFloat = 0.46
-    static let labelAlpha: CGFloat = 0.55
+    static let veilAlpha: CGFloat = 0.38
+    static let labelAlpha: CGFloat = 0.74
     static let valueAlpha: CGFloat = 1.0
-    static let headerAlpha: CGFloat = 0.5
-    static let headerHoverAlpha: CGFloat = 0.8
+    static let headerAlpha: CGFloat = 0.78
+    static let headerHoverAlpha: CGFloat = 0.95
     static let ruleAlpha: CGFloat = 0.18
     static let sectionGap: CGFloat = 11
-    /// The headers' letter spacing, in ems.
-    static let headerKern: CGFloat = 0.08
 }
 
 /// An info panel: `InfoSection`s on dark glass, each a header (a disclosure triangle and the title) over two-column
@@ -43,8 +40,8 @@ enum InfoPanelStyle {
     /// panel's side insets themselves.
     private static var sidePadding: CGFloat { inset.left - spacing.width / 2 }
 
-    private let backdrop = GlassBackdrop(cornerRadius: InfoPanelView.cornerRadius, tint: InfoPanelStyle.tint,
-                                         hairline: true)
+    private let backdrop = NSVisualEffectView()
+    private let veil = PanelVeilView()
     private let scrollView = PanelScrollView()
     let outline = PanelOutlineView()
     /// The outline's data source and delegate (the outline holds them weakly).
@@ -105,10 +102,19 @@ enum InfoPanelStyle {
     public init() {
         super.init(frame: .zero)
         appearance = NSAppearance(named: .darkAqua)
+        backdrop.material = .hudWindow
+        backdrop.blendingMode = .withinWindow
+        backdrop.state = .active
+        backdrop.wantsLayer = true
+        backdrop.layer?.cornerRadius = Self.cornerRadius
+        backdrop.layer?.cornerCurve = .continuous
+        backdrop.layer?.masksToBounds = true
+        backdrop.layer?.borderWidth = 0.5
+        backdrop.layer?.borderColor = NSColor(white: 1, alpha: InfoPanelStyle.ruleAlpha).cgColor
         backdrop.translatesAutoresizingMaskIntoConstraints = false
         addSubview(backdrop)
-        // In the glass: the glass view clips and composites its content view.
-        let content = backdrop.content
+        veil.translatesAutoresizingMaskIntoConstraints = false
+        backdrop.addSubview(veil)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.drawsBackground = false
         scrollView.borderType = .noBorder
@@ -130,7 +136,7 @@ enum InfoPanelStyle {
             guard let self, expansionPending else { return }
             syncExpansion()
         }
-        content.addSubview(scrollView)
+        backdrop.addSubview(scrollView)
         configureOutline()
         scrollView.documentView = outline
         NSLayoutConstraint.activate([
@@ -138,10 +144,14 @@ enum InfoPanelStyle {
             backdrop.trailingAnchor.constraint(equalTo: trailingAnchor),
             backdrop.topAnchor.constraint(equalTo: topAnchor),
             backdrop.bottomAnchor.constraint(equalTo: bottomAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: content.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            veil.leadingAnchor.constraint(equalTo: backdrop.leadingAnchor),
+            veil.trailingAnchor.constraint(equalTo: backdrop.trailingAnchor),
+            veil.topAnchor.constraint(equalTo: backdrop.topAnchor),
+            veil.bottomAnchor.constraint(equalTo: backdrop.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: backdrop.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: backdrop.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: backdrop.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: backdrop.bottomAnchor),
         ])
         setColumnWidths()
     }
@@ -211,9 +221,10 @@ enum InfoPanelStyle {
         }
     }
 
-    /// The label column: the side padding and the widest label (one column for every section, so the values line up
-    /// down the whole panel); the value column takes the rest of the width.
-    private var labelColumnWidth: CGFloat { Self.sidePadding + labelWidth }
+    /// One label column aligns values across sections. Cap it so a long label cannot crowd the values on resize.
+    private var labelColumnWidth: CGFloat {
+        min(Self.sidePadding + labelWidth, max(Self.sidePadding, floor(contentWidth * 0.375)))
+    }
     private var valueColumnWidth: CGFloat {
         max(40 + Self.sidePadding, contentWidth - labelColumnWidth - 2 * Self.spacing.width)
     }
@@ -226,7 +237,7 @@ enum InfoPanelStyle {
 
     private var valueFont: NSFont { .monospacedDigitSystemFont(ofSize: fontSize, weight: .regular) }
     private var labelFont: NSFont { .systemFont(ofSize: fontSize) }
-    private var titleFont: NSFont { .systemFont(ofSize: fontSize - 2, weight: .semibold) }
+    private var titleFont: NSFont { .systemFont(ofSize: fontSize - 1, weight: .semibold) }
 
     /// Shows `sections` (those with rows), `collapsed` naming the sections that show only their header. The same
     /// sections, titles and labels as now only set the values that changed (the stats timer refreshes twice a second);
@@ -590,6 +601,9 @@ enum InfoPanelStyle {
         labelField.font = labelFont
         labelField.textColor = labelColour
         labelField.alignment = .right   // set against its value
+        labelField.lineBreakMode = .byTruncatingTail
+        labelField.toolTip = row.label
+        labelField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         label = Self.cell(labelField, leading: padding, trailing: 0, alignedRight: true)
         valueField = PanelValueField(wrappingLabelWithString: "")
         valueField.font = valueFont
@@ -664,6 +678,13 @@ final class PanelValueField: NSTextField {
     override func mouseDown(with event: NSEvent) {
         onPress?()
         super.mouseDown(with: event)
+    }
+}
+
+private final class PanelVeilView: NSView {
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor(white: 0, alpha: InfoPanelStyle.veilAlpha).setFill()
+        dirtyRect.fill()
     }
 }
 
